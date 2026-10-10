@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-gym-bg text-text-primary font-body;
+    min-height: 100vh;
+  }
+
+  /* Focus ring for accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-gym-bg;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gym-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gym-border-light;
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-accent/30 text-text-primary;
+  }
+}
+
+@layer components {
+  /* Neon glow effect for accent elements */
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.15),
+                0 0 60px rgba(0, 229, 255, 0.05);
+  }
+
+  .glow-accent-strong {
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.3),
+                0 0 60px rgba(0, 229, 255, 0.1);
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-gym-surface/80 backdrop-blur-xl border border-gym-border;
+  }
+
+  /* Card hover effect */
+  .card-interactive {
+    @apply bg-gym-surface border border-gym-border rounded-xl 
+           transition-all duration-300 
+           hover:border-accent/30 hover:shadow-card-hover;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-accent to-blue-400 bg-clip-text text-transparent;
+  }
+
+  /* Status badge base */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply animate-pulse bg-gym-border/50 rounded;
+  }
+}
