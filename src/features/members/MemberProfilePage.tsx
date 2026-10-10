@@ -101,22 +101,18 @@ export function MemberProfilePage() {
       const expiryDateObj = new Date(startDateObj);
       expiryDateObj.setDate(expiryDateObj.getDate() + plan.duration_days);
 
-      // Record payment & receipt
+      // Record renewal & receipt in database
       const idempotency_key = `renew_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      await dataService.recordPayment({
+      await dataService.renewMembership({
         member_id: member.id,
-        membership_id: `ms_${Date.now()}`,
-        amount_charged: renewAgreedFee,
+        plan_id: selectedPlanId,
+        start_date: renewStartDate,
+        agreed_fee: renewAgreedFee,
         amount_received: renewAmountReceived,
         discount: renewDiscount,
         payment_method: renewPaymentMethod,
         notes: `Renewal: ${plan.name}`,
         idempotency_key,
-      });
-
-      // Update member expiry and status
-      await dataService.updateMember(member.id, {
-        notes: member.notes ? `${member.notes} | Renewed on ${new Date().toISOString().split('T')[0]}` : null,
       });
 
       setRenewModalOpen(false);

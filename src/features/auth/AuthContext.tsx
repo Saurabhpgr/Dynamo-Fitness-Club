@@ -66,9 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           updated_at: new Date().toISOString(),
         };
         // Best effort sync with DB
-        const { error: upsertError } = await supabase.from('profiles').upsert(fallbackProfile);
-        if (upsertError) {
-          console.warn('Profile sync note:', upsertError.message);
+        try {
+          const { error: upsertError } = await supabase.from('profiles').upsert(fallbackProfile);
+          if (upsertError) {
+            console.warn('Profile sync note:', upsertError.message);
+          }
+        } catch {
+          // Ignore network or sync failure
         }
         setProfile(fallbackProfile);
       }

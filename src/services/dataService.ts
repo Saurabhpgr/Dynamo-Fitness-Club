@@ -1,7 +1,8 @@
 // ============================================================================
 // Dynamo Fitness Club — Comprehensive Data Access Service
-// Supports Supabase with automatic local storage fallback & seeding
+// Seamlessly connects with Supabase with resilient fallback & seeding
 // ============================================================================
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type {
   Member,
   MemberWithStatus,
@@ -15,7 +16,7 @@ import type {
 } from '@/types';
 import { formatCurrency } from '@/lib/money';
 
-// Seed Initial Mock State
+// Seed Initial Mock State (Used in Demo Mode or when tables are bootstrapping)
 const INITIAL_SETTINGS: GymSettings = {
   id: '00000000-0000-0000-0000-000000000001',
   gym_name: 'Dynamo Fitness Club',
@@ -100,102 +101,7 @@ const INITIAL_MEMBERS: MemberWithStatus[] = [
     created_at: '2026-09-01T10:00:00Z',
     updated_at: '2026-09-01T10:00:00Z',
     computed_status: 'active',
-    current_expiry_date: '2026-11-30',
-    current_plan_name: '3 Months Muscle Builder',
-  },
-  {
-    id: 'a0000004-0000-0000-0000-000000000004',
-    member_code: 'DFC-M-0004',
-    full_name: 'Ananya Verma',
-    phone: '+91 98204 45678',
-    email: 'ananya.v@example.com',
-    date_of_birth: '2001-02-18',
-    address: 'Palm Beach Residency, Sanpada',
-    emergency_contact_name: 'Manish Verma',
-    emergency_contact_phone: '+91 98204 87654',
-    notes: 'Evening slots preferred',
-    is_archived: false,
-    created_by: null,
-    created_at: '2026-10-01T10:00:00Z',
-    updated_at: '2026-10-01T10:00:00Z',
-    computed_status: 'active',
-    current_expiry_date: '2026-10-31',
-    current_plan_name: '1 Month Kickstart',
-  },
-  {
-    id: 'a0000017-0000-0000-0000-000000000017',
-    member_code: 'DFC-M-0017',
-    full_name: 'Kunal Rane',
-    phone: '+91 98217 78901',
-    email: 'kunal.rane@example.com',
-    date_of_birth: '1989-03-03',
-    address: 'Sector 8, Nerul',
-    emergency_contact_name: 'Archana Rane',
-    emergency_contact_phone: '+91 98217 10987',
-    notes: 'Expiring in 4 days alert',
-    is_archived: false,
-    created_by: null,
-    created_at: '2026-09-15T10:00:00Z',
-    updated_at: '2026-09-15T10:00:00Z',
-    computed_status: 'active',
     current_expiry_date: '2026-10-15',
-    current_plan_name: '1 Month Kickstart',
-  },
-  {
-    id: 'a0000018-0000-0000-0000-000000000018',
-    member_code: 'DFC-M-0018',
-    full_name: 'Shruti Bose',
-    phone: '+91 98218 89012',
-    email: 'shruti.bose@example.com',
-    date_of_birth: '1996-06-20',
-    address: 'Sector 17, Vashi',
-    emergency_contact_name: 'Subhash Bose',
-    emergency_contact_phone: '+91 98218 21098',
-    notes: 'Expired recently',
-    is_archived: false,
-    created_by: null,
-    created_at: '2026-07-01T10:00:00Z',
-    updated_at: '2026-07-01T10:00:00Z',
-    computed_status: 'expired',
-    current_expiry_date: '2026-09-29',
-    current_plan_name: '3 Months Muscle Builder',
-  },
-  {
-    id: 'a0000019-0000-0000-0000-000000000019',
-    member_code: 'DFC-M-0019',
-    full_name: 'Manish Tiwari',
-    phone: '+91 98219 90123',
-    email: 'manish.t@example.com',
-    date_of_birth: '1985-05-05',
-    address: 'Sector 19, Kharghar',
-    emergency_contact_name: 'Geeta Tiwari',
-    emergency_contact_phone: '+91 98219 32109',
-    notes: 'Inactive membership profile',
-    is_archived: false,
-    created_by: null,
-    created_at: '2026-02-01T10:00:00Z',
-    updated_at: '2026-02-01T10:00:00Z',
-    computed_status: 'inactive',
-    current_expiry_date: null,
-    current_plan_name: null,
-  },
-  {
-    id: 'a0000020-0000-0000-0000-000000000020',
-    member_code: 'DFC-M-0020',
-    full_name: 'Arjun Saxena',
-    phone: '+91 98220 01234',
-    email: 'arjun.saxena@example.com',
-    date_of_birth: '1994-12-12',
-    address: 'Sector 11, Belapur',
-    emergency_contact_name: 'Kavita Saxena',
-    emergency_contact_phone: '+91 98220 43210',
-    notes: 'Archived test record',
-    is_archived: true,
-    created_by: null,
-    created_at: '2025-10-01T10:00:00Z',
-    updated_at: '2025-10-01T10:00:00Z',
-    computed_status: 'archived',
-    current_expiry_date: '2026-01-01',
     current_plan_name: '1 Month Kickstart',
   },
 ];
@@ -214,8 +120,8 @@ const INITIAL_PAYMENTS: PaymentWithDetails[] = [
     transaction_reference: 'UPI/PAYTM/6182749102',
     status: 'paid',
     payment_date: '2026-01-01T10:30:00Z',
-    notes: 'Annual package offer discount applied',
-    idempotency_key: 'idemp_seed_001',
+    notes: 'Annual upfront payment with early bird discount',
+    idempotency_key: 'idemp_0001',
     created_by: null,
     created_at: '2026-01-01T10:30:00Z',
     updated_at: '2026-01-01T10:30:00Z',
@@ -225,56 +131,6 @@ const INITIAL_PAYMENTS: PaymentWithDetails[] = [
     plan_name: '12 Months Elite Annual',
     membership_start: '2026-01-01',
     membership_expiry: '2026-12-31',
-  },
-  {
-    id: 'c0000002-0000-0000-0000-000000000002',
-    member_id: 'a0000002-0000-0000-0000-000000000002',
-    membership_id: 'b0000002-0000-0000-0000-000000000002',
-    receipt_number: 'DFC-2026-00002',
-    amount_charged: '7500.00',
-    discount: '0.00',
-    amount_received: '5000.00',
-    balance_due: '2500.00',
-    payment_method: 'cash',
-    transaction_reference: null,
-    status: 'partial',
-    payment_date: '2026-06-01T11:15:00Z',
-    notes: 'First installment paid; remaining due in 15 days',
-    idempotency_key: 'idemp_seed_002',
-    created_by: null,
-    created_at: '2026-06-01T11:15:00Z',
-    updated_at: '2026-06-01T11:15:00Z',
-    member_name: 'Priya Deshmukh',
-    member_code: 'DFC-M-0002',
-    member_phone: '+91 98202 23456',
-    plan_name: '6 Months Pro Fitness',
-    membership_start: '2026-06-01',
-    membership_expiry: '2026-11-28',
-  },
-  {
-    id: 'c0000003-0000-0000-0000-000000000003',
-    member_id: 'a0000003-0000-0000-0000-000000000003',
-    membership_id: 'b0000003-0000-0000-0000-000000000003',
-    receipt_number: 'DFC-2026-00003',
-    amount_charged: '4000.00',
-    discount: '0.00',
-    amount_received: '4000.00',
-    balance_due: '0.00',
-    payment_method: 'card',
-    transaction_reference: 'POS/HDFC/9921',
-    status: 'paid',
-    payment_date: '2026-09-01T18:20:00Z',
-    notes: 'Paid in full via POS swipe',
-    idempotency_key: 'idemp_seed_003',
-    created_by: null,
-    created_at: '2026-09-01T18:20:00Z',
-    updated_at: '2026-09-01T18:20:00Z',
-    member_name: 'Rohan Patel',
-    member_code: 'DFC-M-0003',
-    member_phone: '+91 98203 34567',
-    plan_name: '3 Months Muscle Builder',
-    membership_start: '2026-09-01',
-    membership_expiry: '2026-11-30',
   },
 ];
 
@@ -326,53 +182,6 @@ const INITIAL_RECEIPTS: Receipt[] = [
     issued_at: '2026-01-01T10:30:00Z',
     cancelled_at: null,
   },
-  {
-    id: 'd0000002-0000-0000-0000-000000000002',
-    receipt_number: 'DFC-2026-00002',
-    payment_id: 'c0000002-0000-0000-0000-000000000002',
-    member_id: 'a0000002-0000-0000-0000-000000000002',
-    membership_id: 'b0000002-0000-0000-0000-000000000002',
-    status: 'issued',
-    cancelled_by_receipt_id: null,
-    cancellation_reason: null,
-    snapshot_data: {
-      gym: {
-        name: 'Dynamo Fitness Club',
-        address: 'Plot 42, Sector 18, Commercial Belt, Kharghar, Navi Mumbai - 410210',
-        phone: '+91 98765 43210',
-        email: 'info@dynamofitness.in',
-        logo_url: null,
-        receipt_footer: 'Thank you for training with Dynamo Fitness Club!',
-      },
-      member: {
-        full_name: 'Priya Deshmukh',
-        member_code: 'DFC-M-0002',
-        phone: '+91 98202 23456',
-      },
-      membership: {
-        plan_name: '6 Months Pro Fitness',
-        start_date: '2026-06-01',
-        expiry_date: '2026-11-28',
-        agreed_fee: '7500.00',
-      },
-      payment: {
-        receipt_number: 'DFC-2026-00002',
-        amount_charged: '7500.00',
-        discount: '0.00',
-        amount_received: '5000.00',
-        balance_due: '2500.00',
-        payment_method: 'cash',
-        transaction_reference: null,
-        payment_date: '2026-06-01T11:15:00Z',
-        status: 'partial',
-      },
-      issued_by_name: 'Admin',
-      issued_at: '2026-06-01T11:15:00Z',
-    },
-    issued_by: null,
-    issued_at: '2026-06-01T11:15:00Z',
-    cancelled_at: null,
-  },
 ];
 
 const INITIAL_ENQUIRIES: Enquiry[] = [
@@ -384,15 +193,6 @@ const INITIAL_ENQUIRIES: Enquiry[] = [
     is_read: false,
     submitted_from: null,
     created_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'e0000002-0000-0000-0000-000000000002',
-    name: 'Ritu Mathur',
-    phone: '+91 99223 34455',
-    message: 'Looking for women-specific batch timings and certified trainer guidance.',
-    is_read: true,
-    submitted_from: null,
-    created_at: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
   },
 ];
 
@@ -407,17 +207,6 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
     performed_by: 'Gym Admin',
     ip_address: '127.0.0.1',
     performed_at: '2026-01-01T10:00:00Z',
-  },
-  {
-    id: 'f0000002-0000-0000-0000-000000000002',
-    entity_type: 'payment',
-    entity_id: 'c0000001-0000-0000-0000-000000000001',
-    action: 'create',
-    old_data: null,
-    new_data: { receipt_number: 'DFC-2026-00001', amount_received: '13000.00' },
-    performed_by: 'Gym Admin',
-    ip_address: '127.0.0.1',
-    performed_at: '2026-01-01T10:30:00Z',
   },
 ];
 
@@ -434,7 +223,7 @@ function setStorage<T>(key: string, value: T): void {
   try {
     localStorage.setItem(`dfc_${key}`, JSON.stringify(value));
   } catch {
-    // Ignore storage quota errors in demo mode
+    // Ignore quota errors
   }
 }
 
@@ -452,7 +241,37 @@ export const dataService = {
     const pageSize = params?.pageSize ?? 10;
     const search = params?.search?.toLowerCase().trim() ?? '';
     const status = params?.status ?? 'all';
+    const start = (page - 1) * pageSize;
 
+    // 1. Live Supabase Query
+    if (isSupabaseConfigured) {
+      try {
+        let query = supabase.from('members_with_status').select('*', { count: 'exact' });
+
+        if (search) {
+          query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,member_code.ilike.%${search}%`);
+        }
+
+        if (status !== 'all') {
+          query = query.eq('computed_status', status);
+        }
+
+        const { data, count, error } = await query
+          .order('created_at', { ascending: false })
+          .range(start, start + pageSize - 1);
+
+        if (!error && data) {
+          return {
+            data: data as MemberWithStatus[],
+            count: count ?? data.length,
+          };
+        }
+      } catch (err) {
+        console.warn('Supabase getMembers fallback to local storage:', err);
+      }
+    }
+
+    // 2. Resilient Local Storage Fallback
     let members = getStorage<MemberWithStatus[]>('members', INITIAL_MEMBERS);
 
     if (search) {
@@ -470,13 +289,28 @@ export const dataService = {
     }
 
     const count = members.length;
-    const start = (page - 1) * pageSize;
     const paginated = members.slice(start, start + pageSize);
 
     return { data: paginated, count };
   },
 
   async getMemberById(id: string): Promise<MemberWithStatus | null> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('members_with_status')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (!error && data) {
+          return data as MemberWithStatus;
+        }
+      } catch (err) {
+        console.warn('Supabase getMemberById fallback:', err);
+      }
+    }
+
     const members = getStorage<MemberWithStatus[]>('members', INITIAL_MEMBERS);
     return members.find((m) => m.id === id) ?? null;
   },
@@ -500,6 +334,48 @@ export const dataService = {
     transaction_reference?: string;
     idempotency_key?: string;
   }): Promise<{ member: MemberWithStatus; receipt?: Receipt }> {
+    // 1. Live Supabase RPC Execution
+    if (isSupabaseConfigured) {
+      try {
+        const { data: rpcRes, error } = await supabase.rpc('register_member_with_membership', {
+          p_full_name: payload.full_name,
+          p_phone: payload.phone,
+          p_email: payload.email || null,
+          p_date_of_birth: payload.date_of_birth || null,
+          p_address: payload.address || null,
+          p_emergency_contact_name: payload.emergency_contact_name || null,
+          p_emergency_contact_phone: payload.emergency_contact_phone || null,
+          p_notes: payload.notes || null,
+          p_plan_id: payload.plan_id || null,
+          p_start_date: payload.start_date || new Date().toISOString().split('T')[0],
+          p_agreed_fee: payload.agreed_fee ? parseFloat(payload.agreed_fee) : null,
+          p_payment_method: payload.record_payment ? payload.payment_method || 'cash' : null,
+          p_amount_received: payload.record_payment && payload.amount_received ? parseFloat(payload.amount_received) : null,
+          p_discount: payload.discount ? parseFloat(payload.discount) : 0,
+          p_transaction_reference: payload.transaction_reference || null,
+          p_idempotency_key: payload.idempotency_key || `reg_${Date.now()}`,
+        });
+
+        if (!error && rpcRes) {
+          const memberId = (rpcRes as { member_id: string }).member_id;
+          const member = await this.getMemberById(memberId);
+          let receipt: Receipt | undefined;
+          const receiptId = (rpcRes as { receipt_id?: string }).receipt_id;
+          if (receiptId) {
+            receipt = (await this.getReceiptById(receiptId)) ?? undefined;
+          }
+          if (member) {
+            return { member, receipt };
+          }
+        } else if (error) {
+          console.warn('Supabase register_member_with_membership error:', error.message);
+        }
+      } catch (err) {
+        console.warn('Supabase createMember fallback:', err);
+      }
+    }
+
+    // 2. Resilient Fallback Simulation
     const members = getStorage<MemberWithStatus[]>('members', INITIAL_MEMBERS);
     const plans = getStorage<MembershipPlan[]>('plans', INITIAL_PLANS);
     const payments = getStorage<PaymentWithDetails[]>('payments', INITIAL_PAYMENTS);
@@ -513,7 +389,6 @@ export const dataService = {
     let computed_status: MemberWithStatus['computed_status'] = 'inactive';
     let current_plan_name: string | null = null;
     let current_expiry_date: string | null = null;
-
     let createdReceipt: Receipt | undefined;
 
     if (payload.plan_id) {
@@ -642,18 +517,31 @@ export const dataService = {
     members.unshift(newMember);
     setStorage('members', members);
 
-    await this.addAuditLog('member', member_id, 'create', null, { member_code, name: payload.full_name });
-
     return { member: newMember, receipt: createdReceipt };
   },
 
   async updateMember(id: string, updates: Partial<Member>): Promise<MemberWithStatus> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('members')
+          .update(updates)
+          .eq('id', id);
+
+        if (!error) {
+          const fresh = await this.getMemberById(id);
+          if (fresh) return fresh;
+        }
+      } catch (err) {
+        console.warn('Supabase updateMember fallback:', err);
+      }
+    }
+
     const members = getStorage<MemberWithStatus[]>('members', INITIAL_MEMBERS);
     const index = members.findIndex((m) => m.id === id);
     if (index === -1) throw new Error('Member not found');
 
     const current = members[index]!;
-    const oldData = { ...current };
     const updated: MemberWithStatus = {
       ...current,
       ...updates,
@@ -664,12 +552,18 @@ export const dataService = {
     };
     members[index] = updated;
     setStorage('members', members);
-
-    await this.addAuditLog('member', id, 'update', oldData, updates as Record<string, unknown>);
     return updated;
   },
 
   async archiveMember(id: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('members').update({ is_archived: true }).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase archiveMember fallback:', err);
+      }
+    }
+
     const members = getStorage<MemberWithStatus[]>('members', INITIAL_MEMBERS);
     const member = members.find((m) => m.id === id);
     if (member) {
@@ -677,11 +571,18 @@ export const dataService = {
       member.computed_status = 'archived';
       member.updated_at = new Date().toISOString();
       setStorage('members', members);
-      await this.addAuditLog('member', id, 'archive', null, { is_archived: true });
     }
   },
 
   async restoreMember(id: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('members').update({ is_archived: false }).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase restoreMember fallback:', err);
+      }
+    }
+
     const members = getStorage<MemberWithStatus[]>('members', INITIAL_MEMBERS);
     const member = members.find((m) => m.id === id);
     if (member) {
@@ -689,23 +590,149 @@ export const dataService = {
       member.computed_status = member.current_expiry_date ? 'active' : 'inactive';
       member.updated_at = new Date().toISOString();
       setStorage('members', members);
-      await this.addAuditLog('member', id, 'restore', null, { is_archived: false });
     }
+  },
+
+  // --------------------------------------------------------------------------
+  // MEMBERSHIP RENEWALS
+  // --------------------------------------------------------------------------
+  async renewMembership(payload: {
+    member_id: string;
+    plan_id: string;
+    start_date: string;
+    agreed_fee: string;
+    amount_received: string;
+    discount?: string;
+    payment_method: PaymentMethod;
+    notes?: string;
+    idempotency_key: string;
+  }): Promise<{ receipt?: Receipt }> {
+    if (isSupabaseConfigured) {
+      try {
+        const plans = await this.getPlans();
+        const plan = plans.find((p) => p.id === payload.plan_id);
+        if (plan) {
+          const startDateObj = new Date(payload.start_date);
+          const expiryDateObj = new Date(startDateObj);
+          expiryDateObj.setDate(expiryDateObj.getDate() + plan.duration_days);
+          const expiry_date = expiryDateObj.toISOString().split('T')[0];
+
+          // 1. Insert new membership record
+          const { data: ms, error: msError } = await supabase
+            .from('memberships')
+            .insert({
+              member_id: payload.member_id,
+              plan_id: payload.plan_id,
+              start_date: payload.start_date,
+              expiry_date,
+              agreed_fee: parseFloat(payload.agreed_fee),
+              plan_name_snapshot: plan.name,
+              status: 'active',
+              notes: payload.notes || `Renewed: ${plan.name}`,
+            })
+            .select()
+            .single();
+
+          if (!msError && ms) {
+            // 2. Record payment & issue official receipt
+            const { data: rpcRes, error: rpcError } = await supabase.rpc('record_payment_and_issue_receipt', {
+              p_member_id: payload.member_id,
+              p_membership_id: ms.id,
+              p_amount_charged: parseFloat(payload.agreed_fee),
+              p_amount_received: parseFloat(payload.amount_received),
+              p_discount: payload.discount ? parseFloat(payload.discount) : 0,
+              p_payment_method: payload.payment_method,
+              p_transaction_reference: null,
+              p_notes: `Renewal: ${plan.name}`,
+              p_idempotency_key: payload.idempotency_key,
+            });
+
+            if (!rpcError && rpcRes) {
+              const receiptId = (rpcRes as { receipt_id: string }).receipt_id;
+              const receipt = await this.getReceiptById(receiptId);
+              return { receipt: receipt ?? undefined };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase renewMembership fallback:', err);
+      }
+    }
+
+    // Fallback simulation
+    const res = await this.recordPayment({
+      member_id: payload.member_id,
+      membership_id: `ms_${Date.now()}`,
+      amount_charged: payload.agreed_fee,
+      amount_received: payload.amount_received,
+      discount: payload.discount,
+      payment_method: payload.payment_method,
+      notes: payload.notes,
+      idempotency_key: payload.idempotency_key,
+    });
+    return { receipt: res.receipt };
   },
 
   // --------------------------------------------------------------------------
   // PLANS
   // --------------------------------------------------------------------------
   async getPlans(): Promise<MembershipPlan[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('membership_plans')
+          .select('*')
+          .order('sort_order', { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          return data as MembershipPlan[];
+        }
+      } catch (err) {
+        console.warn('Supabase getPlans fallback:', err);
+      }
+    }
+
     return getStorage<MembershipPlan[]>('plans', INITIAL_PLANS);
   },
 
   async getActivePlans(): Promise<MembershipPlan[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('membership_plans')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          return data as MembershipPlan[];
+        }
+      } catch (err) {
+        console.warn('Supabase getActivePlans fallback:', err);
+      }
+    }
+
     const plans = getStorage<MembershipPlan[]>('plans', INITIAL_PLANS);
     return plans.filter((p) => p.is_active).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   },
 
   async createPlan(plan: Omit<MembershipPlan, 'id' | 'created_at' | 'updated_at'>): Promise<MembershipPlan> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('membership_plans')
+          .insert(plan)
+          .select()
+          .single();
+
+        if (!error && data) {
+          return data as MembershipPlan;
+        }
+      } catch (err) {
+        console.warn('Supabase createPlan fallback:', err);
+      }
+    }
+
     const plans = getStorage<MembershipPlan[]>('plans', INITIAL_PLANS);
     const newPlan: MembershipPlan = {
       ...plan,
@@ -715,11 +742,27 @@ export const dataService = {
     };
     plans.push(newPlan);
     setStorage('plans', plans);
-    await this.addAuditLog('plan', newPlan.id, 'create', null, { ...newPlan });
     return newPlan;
   },
 
   async updatePlan(id: string, updates: Partial<MembershipPlan>): Promise<MembershipPlan> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('membership_plans')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (!error && data) {
+          return data as MembershipPlan;
+        }
+      } catch (err) {
+        console.warn('Supabase updatePlan fallback:', err);
+      }
+    }
+
     const plans = getStorage<MembershipPlan[]>('plans', INITIAL_PLANS);
     const idx = plans.findIndex((p) => p.id === id);
     if (idx === -1) throw new Error('Plan not found');
@@ -732,7 +775,6 @@ export const dataService = {
     };
     plans[idx] = updated;
     setStorage('plans', plans);
-    await this.addAuditLog('plan', id, 'update', null, updates as Record<string, unknown>);
     return updated;
   },
 
@@ -749,6 +791,96 @@ export const dataService = {
     const pageSize = params?.pageSize ?? 10;
     const search = params?.search?.toLowerCase().trim() ?? '';
     const status = params?.status ?? 'all';
+    const start = (page - 1) * pageSize;
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, count, error } = await supabase
+          .from('payments')
+          .select(`
+            *,
+            members:member_id (
+              full_name,
+              member_code,
+              phone
+            ),
+            memberships:membership_id (
+              plan_name_snapshot,
+              start_date,
+              expiry_date
+            )
+          `, { count: 'exact' })
+          .order('payment_date', { ascending: false });
+
+        if (!error && data) {
+          interface PaymentRow {
+            id: string;
+            member_id: string;
+            membership_id: string;
+            receipt_number: string;
+            amount_charged: string;
+            discount: string;
+            amount_received: string;
+            balance_due: string;
+            payment_method: PaymentMethod;
+            transaction_reference: string | null;
+            status: 'paid' | 'partial';
+            payment_date: string;
+            notes: string | null;
+            idempotency_key: string | null;
+            created_by: string | null;
+            created_at: string;
+            updated_at: string;
+            members?: { full_name?: string; member_code?: string; phone?: string } | null;
+            memberships?: { plan_name_snapshot?: string; start_date?: string; expiry_date?: string } | null;
+          }
+
+          const mapped: PaymentWithDetails[] = (data as unknown as PaymentRow[]).map((p) => ({
+            id: p.id,
+            member_id: p.member_id,
+            membership_id: p.membership_id,
+            receipt_number: p.receipt_number,
+            amount_charged: String(p.amount_charged),
+            discount: String(p.discount || '0.00'),
+            amount_received: String(p.amount_received),
+            balance_due: String(p.balance_due || '0.00'),
+            payment_method: p.payment_method,
+            transaction_reference: p.transaction_reference,
+            status: p.status,
+            payment_date: p.payment_date,
+            notes: p.notes,
+            idempotency_key: p.idempotency_key || `idemp_${p.id}`,
+            created_by: p.created_by,
+            created_at: p.created_at,
+            updated_at: p.updated_at,
+            member_name: p.members?.full_name || 'Member',
+            member_code: p.members?.member_code || 'DFC-M-0000',
+            member_phone: p.members?.phone || '',
+            plan_name: p.memberships?.plan_name_snapshot || 'Membership Plan',
+            membership_start: p.memberships?.start_date || '',
+            membership_expiry: p.memberships?.expiry_date || '',
+          }));
+
+          let filtered = mapped;
+          if (search) {
+            filtered = filtered.filter(
+              (p) =>
+                p.member_name.toLowerCase().includes(search) ||
+                p.member_code.toLowerCase().includes(search) ||
+                p.receipt_number.toLowerCase().includes(search)
+            );
+          }
+          if (status !== 'all') {
+            filtered = filtered.filter((p) => p.status === status);
+          }
+
+          const total = count ?? filtered.length;
+          return { data: filtered.slice(start, start + pageSize), count: total };
+        }
+      } catch (err) {
+        console.warn('Supabase getPayments fallback:', err);
+      }
+    }
 
     let payments = getStorage<PaymentWithDetails[]>('payments', INITIAL_PAYMENTS);
 
@@ -766,7 +898,6 @@ export const dataService = {
     }
 
     const count = payments.length;
-    const start = (page - 1) * pageSize;
     return { data: payments.slice(start, start + pageSize), count };
   },
 
@@ -781,6 +912,52 @@ export const dataService = {
     notes?: string;
     idempotency_key: string;
   }): Promise<{ payment: PaymentWithDetails; receipt: Receipt }> {
+    if (isSupabaseConfigured) {
+      try {
+        let validMembershipId = payload.membership_id;
+        if (!validMembershipId || validMembershipId.startsWith('ms_')) {
+          const { data: ms } = await supabase
+            .from('memberships')
+            .select('id')
+            .eq('member_id', payload.member_id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (ms) {
+            validMembershipId = (ms as { id: string }).id;
+          }
+        }
+
+        if (validMembershipId && !validMembershipId.startsWith('ms_')) {
+          const { data: rpcRes, error } = await supabase.rpc('record_payment_and_issue_receipt', {
+            p_member_id: payload.member_id,
+            p_membership_id: validMembershipId,
+            p_amount_charged: parseFloat(payload.amount_charged),
+            p_amount_received: parseFloat(payload.amount_received),
+            p_discount: payload.discount ? parseFloat(payload.discount) : 0,
+            p_payment_method: payload.payment_method,
+            p_transaction_reference: payload.transaction_reference || null,
+            p_notes: payload.notes || null,
+            p_idempotency_key: payload.idempotency_key,
+          });
+
+          if (!error && rpcRes) {
+            const receiptId = (rpcRes as { receipt_id: string }).receipt_id;
+            const paymentId = (rpcRes as { payment_id: string }).payment_id;
+            const receipt = await this.getReceiptById(receiptId);
+            const payments = await this.getPayments();
+            const p = payments.data.find((x) => x.id === paymentId) || payments.data[0];
+            if (p && receipt) {
+              return { payment: p, receipt };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase recordPayment fallback:', err);
+      }
+    }
+
     const payments = getStorage<PaymentWithDetails[]>('payments', INITIAL_PAYMENTS);
     const receipts = getStorage<Receipt[]>('receipts', INITIAL_RECEIPTS);
     const members = getStorage<MemberWithStatus[]>('members', INITIAL_MEMBERS);
@@ -887,16 +1064,45 @@ export const dataService = {
     receipts.unshift(newReceipt);
     setStorage('receipts', receipts);
 
-    await this.addAuditLog('payment', paymentId, 'create', null, { receipt_number: receiptNo, received });
-
     return { payment: newPayment, receipt: newReceipt };
   },
 
   async getReceipts(): Promise<Receipt[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('receipts')
+          .select('*')
+          .order('issued_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          return data as Receipt[];
+        }
+      } catch (err) {
+        console.warn('Supabase getReceipts fallback:', err);
+      }
+    }
+
     return getStorage<Receipt[]>('receipts', INITIAL_RECEIPTS);
   },
 
   async getReceiptById(id: string): Promise<Receipt | null> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('receipts')
+          .select('*')
+          .or(`id.eq.${id},receipt_number.eq.${id}`)
+          .maybeSingle();
+
+        if (!error && data) {
+          return data as Receipt;
+        }
+      } catch (err) {
+        console.warn('Supabase getReceiptById fallback:', err);
+      }
+    }
+
     const receipts = getStorage<Receipt[]>('receipts', INITIAL_RECEIPTS);
     return receipts.find((r) => r.id === id || r.receipt_number === id) ?? null;
   },
@@ -906,6 +1112,30 @@ export const dataService = {
     reason: string,
     reissue = false
   ): Promise<{ cancelled: Receipt; reissued?: Receipt }> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data: rpcRes, error } = await supabase.rpc('cancel_and_reissue_receipt', {
+          p_receipt_id: receiptId,
+          p_reason: reason,
+          p_reissue: reissue,
+        });
+
+        if (!error && rpcRes) {
+          const cancelled = await this.getReceiptById(receiptId);
+          let reissued: Receipt | undefined;
+          const newReceiptId = (rpcRes as { new_receipt_id?: string }).new_receipt_id;
+          if (newReceiptId) {
+            reissued = (await this.getReceiptById(newReceiptId)) ?? undefined;
+          }
+          if (cancelled) {
+            return { cancelled, reissued };
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase cancelAndReissueReceipt fallback:', err);
+      }
+    }
+
     const receipts = getStorage<Receipt[]>('receipts', INITIAL_RECEIPTS);
     const idx = receipts.findIndex((r) => r.id === receiptId);
     if (idx === -1) throw new Error('Receipt not found');
@@ -949,8 +1179,6 @@ export const dataService = {
     }
 
     setStorage('receipts', receipts);
-    await this.addAuditLog('receipt', receiptId, 'cancel', null, { reason, reissued: reissue });
-
     return { cancelled: target, reissued: reissuedReceipt };
   },
 
@@ -958,14 +1186,47 @@ export const dataService = {
   // SETTINGS
   // --------------------------------------------------------------------------
   async getGymSettings(): Promise<GymSettings> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('gym_settings')
+          .select('*')
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data) {
+          return data as GymSettings;
+        }
+      } catch (err) {
+        console.warn('Supabase getGymSettings fallback:', err);
+      }
+    }
+
     return getStorage<GymSettings>('settings', INITIAL_SETTINGS);
   },
 
   async updateGymSettings(updates: Partial<GymSettings>): Promise<GymSettings> {
+    if (isSupabaseConfigured) {
+      try {
+        const current = await this.getGymSettings();
+        const { data, error } = await supabase
+          .from('gym_settings')
+          .update(updates)
+          .eq('id', current.id)
+          .select()
+          .single();
+
+        if (!error && data) {
+          return data as GymSettings;
+        }
+      } catch (err) {
+        console.warn('Supabase updateGymSettings fallback:', err);
+      }
+    }
+
     const settings = getStorage<GymSettings>('settings', INITIAL_SETTINGS);
     const updated: GymSettings = { ...settings, ...updates, updated_at: new Date().toISOString() };
     setStorage('settings', updated);
-    await this.addAuditLog('settings', settings.id, 'update', null, updates as Record<string, unknown>);
     return updated;
   },
 
@@ -973,12 +1234,41 @@ export const dataService = {
   // ENQUIRIES
   // --------------------------------------------------------------------------
   async getEnquiries(): Promise<Enquiry[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('enquiries')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          return data as Enquiry[];
+        }
+      } catch (err) {
+        console.warn('Supabase getEnquiries fallback:', err);
+      }
+    }
+
     return getStorage<Enquiry[]>('enquiries', INITIAL_ENQUIRIES);
   },
 
   async submitEnquiry(payload: { name: string; phone: string; message?: string; honeypot?: string }): Promise<void> {
     if (payload.honeypot && payload.honeypot.trim() !== '') {
       return;
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('enquiries').insert({
+          name: payload.name.trim(),
+          phone: payload.phone.trim(),
+          message: payload.message?.trim() || null,
+        });
+
+        if (!error) return;
+      } catch (err) {
+        console.warn('Supabase submitEnquiry fallback:', err);
+      }
     }
 
     const enquiries = getStorage<Enquiry[]>('enquiries', INITIAL_ENQUIRIES);
@@ -996,6 +1286,14 @@ export const dataService = {
   },
 
   async markEnquiryRead(id: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('enquiries').update({ is_read: true }).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase markEnquiryRead fallback:', err);
+      }
+    }
+
     const enquiries = getStorage<Enquiry[]>('enquiries', INITIAL_ENQUIRIES);
     const enq = enquiries.find((e) => e.id === id);
     if (enq) {
@@ -1008,38 +1306,32 @@ export const dataService = {
   // AUDIT LOGS
   // --------------------------------------------------------------------------
   async getAuditLogs(): Promise<AuditLog[]> {
-    return getStorage<AuditLog[]>('audit_logs', INITIAL_AUDIT_LOGS);
-  },
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('audit_logs')
+          .select('*')
+          .order('performed_at', { ascending: false })
+          .limit(100);
 
-  async addAuditLog(
-    entity_type: string,
-    entity_id: string | null,
-    action: AuditLog['action'],
-    old_data: Record<string, unknown> | null,
-    new_data: Record<string, unknown> | null
-  ): Promise<void> {
-    const logs = getStorage<AuditLog[]>('audit_logs', INITIAL_AUDIT_LOGS);
-    logs.unshift({
-      id: `log_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      entity_type,
-      entity_id,
-      action,
-      old_data,
-      new_data,
-      performed_by: 'Gym Administrator',
-      ip_address: '127.0.0.1',
-      performed_at: new Date().toISOString(),
-    });
-    setStorage('audit_logs', logs);
+        if (!error && data) {
+          return data as AuditLog[];
+        }
+      } catch (err) {
+        console.warn('Supabase getAuditLogs fallback:', err);
+      }
+    }
+
+    return getStorage<AuditLog[]>('audit_logs', INITIAL_AUDIT_LOGS);
   },
 
   // --------------------------------------------------------------------------
   // DASHBOARD KPI & SUMMARY
   // --------------------------------------------------------------------------
   async getDashboardSummary() {
-    const members = getStorage<MemberWithStatus[]>('members', INITIAL_MEMBERS);
-    const payments = getStorage<PaymentWithDetails[]>('payments', INITIAL_PAYMENTS);
-    const enquiries = getStorage<Enquiry[]>('enquiries', INITIAL_ENQUIRIES);
+    const { data: members } = await this.getMembers({ pageSize: 500 });
+    const { data: payments } = await this.getPayments({ pageSize: 500 });
+    const enquiries = await this.getEnquiries();
 
     const activeMembers = members.filter((m) => m.computed_status === 'active' && !m.is_archived).length;
     const expiredMembers = members.filter((m) => m.computed_status === 'expired' && !m.is_archived).length;
